@@ -1,0 +1,6 @@
+pgmpy==0.1.25
+pandas==2.1.4
+matplotlib==3.8.2
+numpy==1.26.2
+networkx==3.2.1
+scipy==1.11.4
