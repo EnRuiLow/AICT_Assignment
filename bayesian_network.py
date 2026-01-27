@@ -41,12 +41,13 @@ class CrowdingRiskBN:
         Network Structure:
         - Weather (W), Time of Day (T), Day Type (D), Network Mode (M) are root nodes
         - Service Status (S) depends on Weather
-        - Demand Proxy (P) depends on Time, Day Type, and Network Mode
+        - Demand Proxy (P) depends on Weather, Time, Day Type, and Network Mode
         - Crowding Risk (C) depends on Demand, Service Status, and Network Mode
         """
         # Define the network structure
         self.model = DiscreteBayesianNetwork([
             ('Weather', 'Service_Status'),
+            ('Weather', 'Demand_Proxy'),
             ('Time_of_Day', 'Demand_Proxy'),
             ('Day_Type', 'Demand_Proxy'),
             ('Network_Mode', 'Demand_Proxy'),
@@ -143,25 +144,36 @@ class CrowdingRiskBN:
             }
         )
         
-        # CPD for Demand Proxy (P) given Time, Day Type, and Network Mode
-        # Airport demand varies by time and day, with Future mode having better distribution
-        # due to improved connectivity (TELe + CRL)
-        # Columns: Time (3) x Day (2) x Mode (2) = 12 combinations
+        # CPD for Demand Proxy (P) given Weather, Time, Day Type, and Network Mode
+        # Airport demand varies by weather (rainy = more MRT usage), time and day
+        # Future mode has better distribution due to improved connectivity (TELe + CRL)
+        # Rainy weather increases MRT demand (people avoid walking/outdoor transport)
+        # Columns: Weather (3) x Time (3) x Day (2) x Mode (2) = 36 combinations
         self.cpd_demand_proxy = TabularCPD(
             variable='Demand_Proxy',
             variable_card=3,
             values=[
-                # Time:      Morning      Afternoon     Evening
-                # Day:     Wd    We    Wd    We    Wd    We
-                # Mode:  T  F  T  F  T  F  T  F  T  F  T  F
-                [0.15,0.25,0.35,0.45,0.20,0.30,0.30,0.40,0.10,0.20,0.25,0.35],  # Low
-                [0.40,0.50,0.45,0.40,0.40,0.45,0.45,0.45,0.35,0.45,0.45,0.45],  # Medium
-                [0.45,0.25,0.20,0.15,0.40,0.25,0.25,0.15,0.55,0.35,0.30,0.20]   # High
+                # Weather:        Clear                    Rainy                   Thunderstorms
+                # Time:      Morn   Aftn   Even      Morn   Aftn   Even      Morn   Aftn   Even
+                # Day:     Wd We Wd We Wd We    Wd We Wd We Wd We    Wd We Wd We Wd We
+                # Mode:   TF TF TF TF TF TF    TF TF TF TF TF TF    TF TF TF TF TF TF
+                [0.15,0.25,0.35,0.45,0.20,0.30,0.30,0.40,0.10,0.20,0.25,0.35,  # Clear
+                 0.10,0.20,0.25,0.35,0.15,0.25,0.20,0.30,0.05,0.15,0.15,0.25,  # Rainy (lower Low prob)
+                 0.08,0.18,0.20,0.30,0.12,0.22,0.15,0.25,0.03,0.13,0.10,0.20], # Thunderstorms (lowest Low)
+                
+                [0.40,0.50,0.45,0.40,0.40,0.45,0.45,0.45,0.35,0.45,0.45,0.45,  # Clear
+                 0.45,0.52,0.50,0.45,0.45,0.48,0.50,0.48,0.40,0.47,0.50,0.48,  # Rainy (higher Medium)
+                 0.47,0.54,0.52,0.47,0.48,0.50,0.52,0.50,0.42,0.49,0.52,0.50], # Thunderstorms
+                
+                [0.45,0.25,0.20,0.15,0.40,0.25,0.25,0.15,0.55,0.35,0.30,0.20,  # Clear
+                 0.45,0.28,0.25,0.20,0.40,0.27,0.30,0.22,0.55,0.38,0.35,0.27,  # Rainy (higher High)
+                 0.45,0.28,0.28,0.23,0.40,0.28,0.33,0.25,0.55,0.38,0.38,0.30]  # Thunderstorms (highest High)
             ],
-            evidence=['Time_of_Day', 'Day_Type', 'Network_Mode'],
-            evidence_card=[3, 2, 2],
+            evidence=['Weather', 'Time_of_Day', 'Day_Type', 'Network_Mode'],
+            evidence_card=[3, 3, 2, 2],
             state_names={
                 'Demand_Proxy': ['Low', 'Medium', 'High'],
+                'Weather': ['Clear', 'Rainy', 'Thunderstorms'],
                 'Time_of_Day': ['Morning', 'Afternoon', 'Evening'],
                 'Day_Type': ['Weekday', 'Weekend'],
                 'Network_Mode': ['Today', 'Future']
