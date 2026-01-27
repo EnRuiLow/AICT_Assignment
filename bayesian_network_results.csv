@@ -1,0 +1,9 @@
+Scenario,Prediction,Low_Prob,Medium_Prob,High_Prob,Weather,Time_of_Day,Network_Mode,Service_Status,Day_Type
+Scenario 1a: Rainy Evening + Reduced Service (Today Mode),Medium,0.2476,0.4474,0.3050,Rainy,Evening,Today,Reduced,
+Scenario 1b: Rainy Evening + Reduced Service (Future Mode),Low,0.4117,0.3860,0.2023,Rainy,Evening,Future,Reduced,
+Scenario 2a: Clear Morning Weekday + Normal Service (Today Mode),Low,0.4325,0.4075,0.1600,Clear,Morning,Today,Normal,Weekday
+Scenario 2b: Clear Morning Weekday + Normal Service (Future Mode),Low,0.6000,0.3175,0.0825,Clear,Morning,Future,Normal,Weekday
+Scenario 3: Weekend Afternoon + Normal Service,Low,0.5950,0.3115,0.0935,,Afternoon,,Normal,Weekend
+Scenario 4: Disrupted Service Near Airport Corridor (Thunderstorms),High,0.1578,0.3998,0.4424,Thunderstorms,,Today,Disrupted,
+Scenario 5a: Clear Evening + Normal Service (Today Mode),Low,0.4237,0.4119,0.1645,Clear,Evening,Today,Normal,
+Scenario 5b: Clear Evening + Normal Service (Future Mode),Low,0.5843,0.3246,0.0911,Clear,Evening,Future,Normal,
