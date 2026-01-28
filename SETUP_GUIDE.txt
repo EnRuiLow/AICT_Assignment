@@ -1,0 +1,241 @@
+# QUICK SETUP GUIDE
+# Logical Inference Component - ChangiLink AI
+
+═══════════════════════════════════════════════════════════════════════
+
+## STEP 1: CREATE FILE STRUCTURE
+
+Create a folder called "logical_inference" with these files:
+
+logical_inference/
+│
+├── __init__.py
+├── models.py
+├── rules.py
+├── knowledge_base.py
+├── inference_engine.py
+├── test_scenarios.py
+└── main.py
+
+Also create main.py at the same level as the folder (outside).
+
+═══════════════════════════════════════════════════════════════════════
+
+## STEP 2: COPY FILES
+
+Copy each file content from the artifacts into the respective files:
+- File 1 → __init__.py
+- File 2 → models.py
+- File 3 → rules.py
+- File 4 → knowledge_base.py
+- File 5 → inference_engine.py
+- File 6 → test_scenarios.py
+- File 7 → main.py (OUTSIDE the folder)
+
+═══════════════════════════════════════════════════════════════════════
+
+## STEP 3: VERIFY STRUCTURE
+
+Your final structure should look like:
+
+your_project/
+│
+├── logical_inference/          ← FOLDER
+│   ├── __init__.py
+│   ├── models.py
+│   ├── rules.py
+│   ├── knowledge_base.py
+│   ├── inference_engine.py
+│   └── test_scenarios.py
+│
+└── main.py                     ← OUTSIDE the folder
+
+═══════════════════════════════════════════════════════════════════════
+
+## STEP 4: TEST INDIVIDUAL MODULES
+
+Test each module independently:
+
+```bash
+# Test models
+python logical_inference/models.py
+
+# Test rules
+python logical_inference/rules.py
+
+# Test knowledge base
+python logical_inference/knowledge_base.py
+
+# Test inference engine
+python logical_inference/inference_engine.py
+```
+
+Each should print "ALL TESTS PASSED ✓"
+
+═══════════════════════════════════════════════════════════════════════
+
+## STEP 5: RUN MAIN SYSTEM
+
+```bash
+# Interactive menu
+python main.py
+
+# OR run all tests directly
+python main.py --test
+
+# OR display rules
+python main.py --display-rules
+```
+
+═══════════════════════════════════════════════════════════════════════
+
+## TROUBLESHOOTING
+
+### Issue: "ModuleNotFoundError: No module named 'logical_inference'"
+
+**Solution:** Make sure you're running main.py from OUTSIDE the 
+logical_inference folder. Your terminal should be in the parent 
+directory.
+
+```bash
+# Wrong:
+cd logical_inference
+python main.py  ← DON'T DO THIS
+
+# Correct:
+cd your_project
+python main.py  ← DO THIS
+```
+
+═══════════════════════════════════════════════════════════════════════
+
+### Issue: Imports not working
+
+**Solution:** Make sure __init__.py exists and has the import statements.
+Also ensure you're using Python 3.8 or higher.
+
+═══════════════════════════════════════════════════════════════════════
+
+### Issue: "No tests ran" or empty output
+
+**Solution:** Make sure you saved all files correctly with the exact
+names shown above (case-sensitive).
+
+═══════════════════════════════════════════════════════════════════════
+
+## CUSTOMIZATION
+
+### To add your own rule:
+
+1. Open knowledge_base.py
+2. In _initialize_rules(), add:
+
+```python
+self.rules.append(LogicRule(
+    rule_id="R13",
+    description="Your rule description here",
+    antecedent=["Prop1", "Prop2"],
+    consequent="Prop3"
+))
+```
+
+═══════════════════════════════════════════════════════════════════════
+
+### To add your own test scenario:
+
+1. Open test_scenarios.py
+2. Add a new function:
+
+```python
+def scenario_7_your_test():
+    """Your scenario description"""
+    print_scenario_header(7, "YOUR SCENARIO NAME")
+    
+    kb = MRTKnowledgeBase()
+    engine = ResolutionEngine(kb)
+    
+    facts = {
+        "Your_Fact_1": True,
+        "Your_Fact_2": False,
+    }
+    
+    result = engine.validate_route(facts, NetworkMode.TODAY)
+    print_result(result)
+    return result
+```
+
+3. Add to run_all_scenarios():
+
+```python
+results.append(scenario_7_your_test())
+```
+
+═══════════════════════════════════════════════════════════════════════
+
+## FOR PRESENTATION
+
+### What to show your tutor:
+
+1. Run: `python main.py --test`
+   - Shows all 6 scenarios working
+   - Demonstrates valid/invalid/contradictory cases
+   - Shows TODAY vs FUTURE mode differences
+
+2. Open knowledge_base.py
+   - Show the 12 rules clearly defined
+   - Explain CNF conversion
+
+3. Open inference_engine.py
+   - Show resolution algorithm (resolve function)
+   - Explain proof by contradiction
+
+4. Discuss limitations and improvements (from README)
+
+═══════════════════════════════════════════════════════════════════════
+
+## INTEGRATION WITH TEAMMATES
+
+Your teammates working on Search and Bayesian components can import
+your engine like this:
+
+```python
+from logical_inference import ResolutionEngine, MRTKnowledgeBase, NetworkMode
+
+# Create engine
+kb = MRTKnowledgeBase()
+logic_engine = ResolutionEngine(kb)
+
+# Validate a route
+facts = {"Station_Open_Expo": True, "Line_Active_TEL": True}
+result = logic_engine.validate_route(facts, NetworkMode.TODAY)
+
+if result['is_consistent']:
+    print("Route is valid!")
+else:
+    print(f"Route violates: {result['violated_rules']}")
+```
+
+═══════════════════════════════════════════════════════════════════════
+
+## SUBMISSION CHECKLIST
+
+Before submitting:
+
+□ All 7 Python files created and working
+□ main.py runs without errors
+□ All 6 test scenarios pass
+□ Knowledge base has 12+ rules
+□ README.md explains everything clearly
+□ Code is well-commented
+□ Your name and student ID in all files
+□ Tested integration with teammates (if possible)
+
+═══════════════════════════════════════════════════════════════════════
+
+Good luck with your assignment! 🚀
+
+If you encounter any issues, check:
+1. File structure is correct
+2. All files saved with correct names
+3. Python version is 3.8+
+4. Running from correct directory
