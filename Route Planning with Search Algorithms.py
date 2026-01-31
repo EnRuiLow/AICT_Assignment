@@ -2,6 +2,10 @@ import math
 from collections import deque
 import heapq
 import time
+import random
+import math
+
+
 
 stations = {
     # East-West / Downtown Line
@@ -152,141 +156,6 @@ graph_today = {
 
 
 
-
-
-
-
-
-# --------------------------
-# 4️⃣ Heuristic function
-# --------------------------
-def heuristic(a, b):
-    x1, y1 = stations[a]
-    x2, y2 = stations[b]
-    return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
-
-# --------------------------
-# 5️⃣ Path cost with transfer penalty
-# --------------------------
-def path_cost_with_transfer(path, graph, station_line, transfer_penalty=2):
-    cost = 0
-    for i in range(len(path)-1):
-        cost += graph[path[i]][path[i+1]]
-        if station_line.get(path[i]) != station_line.get(path[i+1]):
-            cost += transfer_penalty
-    return cost
-
-# --------------------------
-# 6️⃣ BFS
-# --------------------------
-def bfs(graph, start, goal):
-    queue = deque([[start]])
-    visited = set()
-    nodes_expanded = 0
-
-    while queue:
-        path = queue.popleft()
-        node = path[-1]
-        nodes_expanded += 1
-
-        if node == goal:
-            return path, nodes_expanded
-
-        if node not in visited:
-            visited.add(node)
-            for neighbor in graph.get(node, {}):
-                new_path = list(path)
-                new_path.append(neighbor)
-                queue.append(new_path)
-
-    return None, nodes_expanded
-
-# --------------------------
-# 7️⃣ DFS
-# --------------------------
-def dfs(graph, start, goal):
-    stack = [[start]]
-    visited = set()
-    nodes_expanded = 0
-
-    while stack:
-        path = stack.pop()
-        node = path[-1]
-        nodes_expanded += 1
-
-        if node == goal:
-            return path, nodes_expanded
-
-        if node not in visited:
-            visited.add(node)
-            for neighbor in graph.get(node, {}):
-                new_path = list(path)
-                new_path.append(neighbor)
-                stack.append(new_path)
-
-    return None, nodes_expanded
-
-# --------------------------
-# 8️⃣ GBFS
-# --------------------------
-def greedy_bfs(graph, start, goal):
-    pq = []
-    heapq.heappush(pq, (heuristic(start, goal), [start]))
-    visited = set()
-    nodes_expanded = 0
-
-    while pq:
-        _, path = heapq.heappop(pq)
-        node = path[-1]
-        nodes_expanded += 1
-
-        if node == goal:
-            return path, nodes_expanded
-
-        if node not in visited:
-            visited.add(node)
-            for neighbor in graph.get(node, {}):
-                new_path = list(path)
-                new_path.append(neighbor)
-                heapq.heappush(pq, (heuristic(neighbor, goal), new_path))
-
-    return None, nodes_expanded
-
-# --------------------------
-# 9️⃣ A* Search
-# --------------------------
-def astar(graph, start, goal, station_line, transfer_penalty=2):
-    pq = []
-    heapq.heappush(pq, (0 + heuristic(start, goal), 0, [start]))
-    visited = set()
-    nodes_expanded = 0
-
-    while pq:
-        f, g, path = heapq.heappop(pq)
-        node = path[-1]
-        nodes_expanded += 1
-
-        if node == goal:
-            return path, nodes_expanded
-
-        if node not in visited:
-            visited.add(node)
-            for neighbor, cost in graph.get(node, {}).items():
-                extra = transfer_penalty if station_line.get(node) != station_line.get(neighbor) else 0
-                new_g = g + cost + extra
-                new_f = new_g + heuristic(neighbor, goal)
-                new_path = list(path)
-                new_path.append(neighbor)
-                heapq.heappush(pq, (new_f, new_g, new_path))
-
-    return None, nodes_expanded
-
-
-
-import math
-from collections import deque
-import heapq
-import time
 # ------------------------------
 # Future stations with coordinates
 # ------------------------------
@@ -522,6 +391,7 @@ def path_cost_with_transfer(path, graph, station_line, transfer_penalty=2):
             cost += transfer_penalty
     return cost
 
+
 # --------------------------
 # 6️⃣ BFS
 # --------------------------
@@ -693,5 +563,238 @@ od_pairs = [
     
 ]
 
-
 compare_today_future(graph_today, station_line, future_graph_today, future_station_line, od_pairs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# =====================================================
+# DISRUPTIONS
+# =====================================================
+
+# Disruption 1: Segment Suspension (Hard Constraint)
+# Tanah Merah – Expo closed
+DISRUPTED_EDGES_1 = {
+    ("Tanah Merah", "Expo"),
+    ("Expo", "Tanah Merah")
+}
+
+# Disruption 2: Reduced Service (Soft Constraint)
+# Expo – Changi Airport reduced frequency
+EDGE_PENALTIES = {
+    ("Expo", "Changi Airport"): 5,
+    ("Changi Airport", "Expo"): 5
+}
+
+# Transfer penalty (used in cost function)
+TRANSFER_PENALTY = 2
+
+
+# =====================================================
+# CONSTRAINT FUNCTIONS
+# =====================================================
+
+def count_transfers(path, station_line):
+    transfers = 0
+    for i in range(len(path) - 1):
+        if station_line[path[i]] != station_line[path[i + 1]]:
+            transfers += 1
+    return transfers
+
+
+def is_path_valid(path, disrupted_edges):
+    """Hard constraint: avoid closed segments"""
+    for i in range(len(path) - 1):
+        if (path[i], path[i + 1]) in disrupted_edges:
+            return False
+    return True
+
+
+# =====================================================
+# COST FUNCTION
+# =====================================================
+
+def path_cost_with_transfer(path, graph, station_line):
+    cost = 0
+
+    for i in range(len(path) - 1):
+        u, v = path[i], path[i + 1]
+
+        # Edge cost
+        cost += graph[u][v]
+
+        # Reduced service penalty
+        if (u, v) in EDGE_PENALTIES:
+            cost += EDGE_PENALTIES[(u, v)]
+
+        # Transfer penalty
+        if station_line[u] != station_line[v]:
+            cost += TRANSFER_PENALTY
+
+    return cost
+
+
+# =====================================================
+# INITIAL STATE (BASELINE PATHS)
+# =====================================================
+
+OD_PAIRS = [
+    ("Changi Airport", "Marina Bay"),
+    ("Changi Airport", "Gardens by the Bay"),
+    ("Changi Airport", "Promenade"),
+    ("Bishan", "Changi Airport"),
+    ("Tampines", "Changi Airport"),
+]
+
+initial_state = {}
+
+for od in OD_PAIRS:
+    path, _ = astar(
+        future_graph_today,
+        od[0],
+        od[1],
+        future_station_line
+    )
+    initial_state[od] = path
+
+
+
+# =====================================================
+# BASELINE COSTS (TODAY RESULTS)
+# =====================================================
+
+baseline_costs = {
+    ("Changi Airport", "Marina Bay"): 32,
+    ("Changi Airport", "Gardens by the Bay"): 34,
+    ("Changi Airport", "Promenade"): 26,
+    ("Bishan", "Changi Airport"): 31,
+    ("Tampines", "Changi Airport"): 9
+}
+
+
+# =====================================================
+# OBJECTIVE FUNCTION
+# =====================================================
+
+def total_system_delay(state, baseline_costs, graph, station_line):
+    total_delay = 0
+
+    for od, path in state.items():
+        disrupted_cost = path_cost_with_transfer(path, graph, station_line)
+        total_delay += disrupted_cost - baseline_costs[od]
+
+    return total_delay / len(state)
+
+
+# =====================================================
+# NEIGHBOR GENERATION (LOCAL SEARCH)
+# =====================================================
+
+def generate_neighbor(state, od_pair, graph, station_line):
+    start, goal = od_pair
+
+    # A* with random tie-breaking
+    new_path, _ = astar(
+        graph,
+        start,
+        goal,
+        station_line,
+    )
+
+    new_state = state.copy()
+    new_state[od_pair] = new_path
+    return new_state
+
+
+# =====================================================
+# LOCAL SEARCH
+# =====================================================
+
+current = initial_state
+current_cost = total_system_delay(
+    current,
+    baseline_costs,
+    future_graph_today,
+    future_station_line
+)
+
+for _ in range(100):
+    od = random.choice(list(current.keys()))
+    neighbor = generate_neighbor(
+        current,
+        od,
+        future_graph_today,
+        future_station_line
+    )
+
+    if not is_path_valid(neighbor[od], DISRUPTED_EDGES_1):
+        continue
+
+    new_cost = total_system_delay(
+        neighbor,
+        baseline_costs,
+        future_graph_today,
+        future_station_line
+    )
+
+    if new_cost < current_cost:
+        current = neighbor
+        current_cost = new_cost
+
+
+# =====================================================
+# SIMULATED ANNEALING
+# =====================================================
+
+T = 1.0
+cooling = 0.95
+
+for _ in range(200):
+    od = random.choice(list(current.keys()))
+    neighbor = generate_neighbor(
+        current,
+        od,
+        future_graph_today,
+        future_station_line
+    )
+
+    if not is_path_valid(neighbor[od], DISRUPTED_EDGES_1):
+        continue
+
+    new_cost = total_system_delay(
+        neighbor,
+        baseline_costs,
+        future_graph_today,
+        future_station_line
+    )
+
+    delta = new_cost - current_cost
+
+    if delta < 0 or random.random() < math.exp(-delta / T):
+        current = neighbor
+        current_cost = new_cost
+
+    T *= cooling
+
+
+# =====================================================
+# FINAL RESULT
+# =====================================================
+
+print("Final optimised average delay:", round(current_cost, 2))
+for od, path in current.items():
+    print(f"{od}: {path}")
+
+
+
+
