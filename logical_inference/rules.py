@@ -172,7 +172,7 @@ if __name__ == "__main__":
         "R3",
         "In Future Mode, the old EWL airport branch is NOT active",
         ["Network_Mode_Future"],
-        "Line_Active_EWL_Airport",
+        "Line_Inactive_EWL_Airport",
         network_mode=NetworkMode.FUTURE
     )
     
