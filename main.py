@@ -5,7 +5,8 @@ This is the main script to run the MRT Logical Inference component.
 It demonstrates all features including rule display, inference, and testing.
 
 Usage:
-    python main.py                  # Run all test scenarios
+    python main.py                  # Run interactive menu
+    python main.py --test           # Run all test scenarios
     python main.py --display-rules  # Display all rules
     python main.py --custom         # Run custom validation
 
@@ -20,7 +21,11 @@ from logical_inference import (
     NetworkMode,
     Proposition
 )
-from logical_inference.test_scenarios import run_all_scenarios
+from logical_inference.test_scenarios import (
+    run_all_scenarios, 
+    run_today_scenarios, 
+    run_future_scenarios
+)
 
 
 def display_welcome():
@@ -65,6 +70,31 @@ def display_rules_interactive():
             else:
                 print(f"Rule {rule_id} not found")
         elif choice == "5":
+            break
+        else:
+            print("Invalid choice")
+
+
+def run_test_scenarios_interactive():
+    """Interactive test scenario runner with submenu"""
+    while True:
+        print("\n" + "="*70)
+        print("TEST SCENARIOS OPTIONS")
+        print("="*70)
+        print("1. Run all test scenarios")
+        print("2. Run TODAY mode scenarios only")
+        print("3. Run FUTURE mode scenarios only")
+        print("4. Back to main menu")
+        
+        choice = input("\nEnter choice (1-4): ").strip()
+        
+        if choice == "1":
+            run_all_scenarios()
+        elif choice == "2":
+            run_today_scenarios()
+        elif choice == "3":
+            run_future_scenarios()
+        elif choice == "4":
             break
         else:
             print("Invalid choice")
@@ -146,7 +176,7 @@ def main_menu():
         print("\n" + "="*70)
         print("MAIN MENU")
         print("="*70)
-        print("1. Run all test scenarios")
+        print("1. Run test scenarios")
         print("2. Display rules")
         print("3. Custom validation")
         print("4. Display knowledge base summary")
@@ -155,7 +185,7 @@ def main_menu():
         choice = input("\nEnter choice (1-5): ").strip()
         
         if choice == "1":
-            run_all_scenarios()
+            run_test_scenarios_interactive()
         elif choice == "2":
             display_rules_interactive()
         elif choice == "3":
@@ -184,12 +214,22 @@ def main():
             print("Usage:")
             print("  python main.py                  # Interactive menu")
             print("  python main.py --test           # Run all test scenarios")
+            print("  python main.py --test-today     # Run TODAY mode scenarios")
+            print("  python main.py --test-future    # Run FUTURE mode scenarios")
             print("  python main.py --display-rules  # Display all rules")
             print("  python main.py --custom         # Custom validation")
             sys.exit(0)
         
         elif arg == "--test":
             run_all_scenarios()
+            sys.exit(0)
+        
+        elif arg == "--test-today":
+            run_today_scenarios()
+            sys.exit(0)
+        
+        elif arg == "--test-future":
+            run_future_scenarios()
             sys.exit(0)
         
         elif arg == "--display-rules":

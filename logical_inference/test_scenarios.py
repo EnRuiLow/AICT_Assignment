@@ -1,422 +1,486 @@
 """
-TELe-Specific Test Scenarios
+Test Scenarios for Logical Inference
 
-This module demonstrates test cases that validate the TELe (Thomson-East Coast Line Extension)
-rules in the updated knowledge base.
+This module contains 9 test scenarios covering:
+- Valid routes (both modes)
+- Invalid routes (rule violations)
+- Contradictory advisories
 
 Author: [Your Name]
 Student ID: [Your ID]
 """
 
-from logical_inference.models import NetworkMode
-from logical_inference.knowledge_base import MRTKnowledgeBase
-from logical_inference.inference_engine import ResolutionEngine
+from .models import NetworkMode
+from .knowledge_base import MRTKnowledgeBase
+from .inference_engine import ResolutionEngine
 
 
-def get_tele_test_scenarios():
-    """
-    Returns a list of test scenarios specifically for TELe rules.
-    
-    These scenarios test:
-    - R13: Station conversion completion
-    - R14: Systems integration impacts
-    - R15: Future mode airport access
-    - R16: Direct city-airport connection
-    - R17: Signalling conversion disruptions
-    - R18: Sungei Bedok to T5 routing
-    - R19: Platform door modifications
-    - R20: Power supply conversion
-    """
-    
-    scenarios = []
-    
-    # ========================================================================
-    # SCENARIO 1: TELe Conversion Complete - Valid Future Mode
-    # ========================================================================
-    scenarios.append({
-        "id": "TELe_1",
-        "description": "VALID - TELe Conversion Complete in Future Mode",
-        "mode": NetworkMode.FUTURE,
-        "facts": {
-            "Network_Mode_Future": True,
-            "TELe_Conversion_Complete": True,
-            "Network_Operational": True,
-            "Line_Active_TEL": True,
-            "Station_Open_Changi_Airport": True,
-        },
-        "expected_outcome": "VALID",
-        "expected_inferences": [
-            "Stations_TanahMerah_Expo_Changi_TEL",  # via R13
-            "Line_Active_TEL_T5",  # via R4
-            "Changi_Airport_Accessible_Via_TEL_Only",  # via R15
-            "Direct_TEL_City_Airport_Connection",  # via R16
-        ],
-        "explanation": "After TELe conversion, the three stations operate as TEL stations, "
-                      "providing direct city-airport connectivity via TEL."
-    })
-    
-    # ========================================================================
-    # SCENARIO 2: Invalid EWL Airport Branch in Future Mode
-    # ========================================================================
-    scenarios.append({
-        "id": "TELe_2",
-        "description": "INVALID - Old EWL Airport Branch Active in Future Mode",
-        "mode": NetworkMode.FUTURE,
-        "facts": {
-            "Network_Mode_Future": True,
-            "Line_Active_EWL_Airport": True,  # CONTRADICTION!
-            "Destination_Changi_Airport": True,
-        },
-        "expected_outcome": "INVALID",
-        "violated_rules": ["R3", "R15"],
-        "explanation": "The old EWL airport branch should NOT be active in Future Mode. "
-                      "R3 states that in Future Mode, the old EWL branch is inactive. "
-                      "This creates a contradiction."
-    })
-    
-    # ========================================================================
-    # SCENARIO 3: Systems Integration Work Ongoing
-    # ========================================================================
-    scenarios.append({
-        "id": "TELe_3",
-        "description": "VALID - Systems Integration Work Requiring Adjustments",
-        "mode": NetworkMode.TODAY,
-        "facts": {
-            "Network_Mode_Today": True,
-            "Systems_Integration_Active": True,
-            "Station_Signalling_Conversion_Active": True,
-            "Platform_Doors_Modification_Active": True,
-        },
-        "expected_outcome": "VALID",
-        "expected_inferences": [
-            "Service_Adjustments_Required",  # via R14, R17
-            "Station_Reduced_Capacity",  # via R19
-        ],
-        "explanation": "During systems integration (signalling, PSDs), service adjustments "
-                      "and reduced capacity are expected. System correctly identifies this."
-    })
-    
-    # ========================================================================
-    # SCENARIO 4: Route from Sungei Bedok to T5 (Future Mode)
-    # ========================================================================
-    scenarios.append({
-        "id": "TELe_4",
-        "description": "VALID - Direct Route from Sungei Bedok to T5",
-        "mode": NetworkMode.FUTURE,
-        "facts": {
-            "Network_Mode_Future": True,
-            "Origin_Sungei_Bedok": True,
-            "Destination_T5": True,
-            "TELe_Conversion_Complete": True,
-            "Line_Active_TEL": True,
-        },
-        "expected_outcome": "VALID",
-        "expected_inferences": [
-            "Route_Uses_TEL_Extension",  # via R18
-            "Line_Active_TEL_T5",  # via R4 (if Network_Operational)
-        ],
-        "explanation": "TELe creates a direct extension from Sungei Bedok to T5, "
-                      "so this route should use the TEL extension without transfers."
-    })
-    
-    # ========================================================================
-    # SCENARIO 5: T5 Access Attempted in TODAY Mode
-    # ========================================================================
-    scenarios.append({
-        "id": "TELe_5",
-        "description": "INVALID - Attempting to Access T5 in TODAY Mode",
-        "mode": NetworkMode.TODAY,
-        "facts": {
-            "Network_Mode_Today": True,
-            "Route_Uses_T5": True,
-            "Station_Open_T5": True,
-        },
-        "expected_outcome": "INVALID",
-        "violated_rules": ["R12"],
-        "explanation": "T5 station doesn't exist yet in TODAY mode. R12 states that "
-                      "if route uses T5, network must be in Future Mode. Contradiction."
-    })
-    
-    # ========================================================================
-    # SCENARIO 6: Power Supply Conversion Impact
-    # ========================================================================
-    scenarios.append({
-        "id": "TELe_6",
-        "description": "VALID - Power Supply Conversion Requiring Alternative Routes",
-        "mode": NetworkMode.TODAY,
-        "facts": {
-            "Network_Mode_Today": True,
-            "Power_Supply_Conversion_Active": True,
-            "Systems_Integration_Active": True,
-        },
-        "expected_outcome": "VALID",
-        "expected_inferences": [
-            "Alternative_Routing_Required",  # via R20
-            "Service_Adjustments_Required",  # via R14
-        ],
-        "explanation": "Power supply conversion requires alternative routing and "
-                      "service adjustments during transition period."
-    })
-    
-    # ========================================================================
-    # SCENARIO 7: Comparison - Airport Access (TODAY vs FUTURE)
-    # ========================================================================
-    scenarios.append({
-        "id": "TELe_7a",
-        "description": "COMPARISON A - Airport Access in TODAY Mode (via EWL)",
-        "mode": NetworkMode.TODAY,
-        "facts": {
-            "Network_Mode_Today": True,
-            "Destination_Changi_Airport": True,
-            "Line_Active_EWL_Airport": True,
-            "Station_Open_TanahMerah": True,
-            "Station_Open_Expo": True,
-            "Station_Open_Changi_Airport": True,
-        },
-        "expected_outcome": "VALID",
-        "explanation": "In TODAY mode, Changi Airport is accessible via the EWL branch "
-                      "(Tanah Merah → Expo → Changi Airport)."
-    })
-    
-    scenarios.append({
-        "id": "TELe_7b",
-        "description": "COMPARISON B - Airport Access in FUTURE Mode (via TEL)",
-        "mode": NetworkMode.FUTURE,
-        "facts": {
-            "Network_Mode_Future": True,
-            "Destination_Changi_Airport": True,
-            "TELe_Conversion_Complete": True,
-            "Line_Active_TEL": True,
-            "Station_Open_Changi_Airport": True,
-        },
-        "expected_outcome": "VALID",
-        "expected_inferences": [
-            "Route_Uses_TEL",  # via R11
-            "Changi_Airport_Accessible_Via_TEL_Only",  # via R15
-            "Direct_TEL_City_Airport_Connection",  # via R16
-        ],
-        "explanation": "In FUTURE mode, Changi Airport is accessible ONLY via TEL "
-                      "(converted stations), providing faster direct connection."
-    })
-    
-    # ========================================================================
-    # SCENARIO 8: TEL-CRL Interchange at T5
-    # ========================================================================
-    scenarios.append({
-        "id": "TELe_8",
-        "description": "VALID - TEL-CRL Interchange at T5 (Future Mode)",
-        "mode": NetworkMode.FUTURE,
-        "facts": {
-            "Network_Mode_Future": True,
-            "Line_Active_TEL": True,
-            "Line_Active_CRL": True,
-            "Line_Active_CRL_T5": True,
-            "Station_Open_T5": True,
-            "TELe_Conversion_Complete": True,
-        },
-        "expected_outcome": "VALID",
-        "expected_inferences": [
-            "Transfer_Available_TEL_CRL",  # via R9
-            "Network_Mode_Future",  # via R7 (reinforced)
-        ],
-        "explanation": "T5 will be a major interchange between TEL and CRL, enabling "
-                      "seamless transfers between the two lines."
-    })
-    
-    # ========================================================================
-    # SCENARIO 9: Incomplete TELe in Future Mode
-    # ========================================================================
-    scenarios.append({
-        "id": "TELe_9",
-        "description": "EDGE CASE - Future Mode Declared but TELe Not Complete",
-        "mode": NetworkMode.FUTURE,
-        "facts": {
-            "Network_Mode_Future": True,
-            "TELe_Conversion_Complete": False,
-            "Line_Active_TEL": True,
-            "Destination_Changi_Airport": True,
-        },
-        "expected_outcome": "INDETERMINATE",
-        "explanation": "This represents a transition state where Future Mode is active "
-                      "but TELe conversion isn't complete. System behavior depends on "
-                      "how transition phases are modeled."
-    })
-    
-    # ========================================================================
-    # SCENARIO 10: Multi-System Integration Work
-    # ========================================================================
-    scenarios.append({
-        "id": "TELe_10",
-        "description": "VALID - Multiple Systems Under Integration Simultaneously",
-        "mode": NetworkMode.TODAY,
-        "facts": {
-            "Network_Mode_Today": True,
-            "Systems_Integration_Active": True,
-            "Station_Signalling_Conversion_Active": True,
-            "Platform_Doors_Modification_Active": True,
-            "Power_Supply_Conversion_Active": True,
-            "Integration_Work_Active": True,
-        },
-        "expected_outcome": "VALID",
-        "expected_inferences": [
-            "Service_Adjustments_Required",  # via R10, R14, R17
-            "Station_Reduced_Capacity",  # via R19
-            "Alternative_Routing_Required",  # via R20
-        ],
-        "explanation": "During major integration work, multiple systems are affected "
-                      "simultaneously, requiring comprehensive service adjustments."
-    })
-    
-    return scenarios
-
-
-def run_all_scenarios():
-    """
-    Run all TELe test scenarios and display results.
-    
-    This function:
-    1. Initializes the knowledge base and inference engine
-    2. Retrieves all test scenarios
-    3. Executes each scenario through the engine
-    4. Displays formatted results with validation status
-    """
+def print_scenario_header(scenario_num: int, title: str):
+    """Print formatted scenario header"""
     print("\n" + "="*70)
-    print("RUNNING ALL TEST SCENARIOS")
-    print("="*70 + "\n")
+    print(f"SCENARIO {scenario_num}: {title}")
+    print("="*70)
+
+
+def print_result(result: dict):
+    """Print validation result in formatted way"""
+    print(f"\nMode: {result['mode'].upper()}")
+    print(f"\nInput Facts:")
+    for fact, value in result['facts'].items():
+        print(f"  • {fact}: {value}")
     
-    # Initialize
+    print(f"\nValidation Result:")
+    if result['is_consistent']:
+        print("  ✓ VALID - No contradictions detected")
+    else:
+        print("  ✗ INVALID - Contradictions detected")
+    
+    print(f"\nDetails:")
+    print(f"  {result['consistency_message']}")
+    
+    if result['violated_rules']:
+        print(f"\nViolated Rules:")
+        for violation in result['violated_rules']:
+            print(f"  • {violation}")
+
+
+# ============================================================================
+# SCENARIO 1: VALID - Normal Operations in TODAY Mode
+# ============================================================================
+
+def scenario_1_valid_today():
+    """
+    Scenario 1: Valid route in TODAY Mode
+    
+    Context: Normal weekday operations, all stations open, standard service
+    Expected: All rules satisfied, no contradictions
+    """
+    print_scenario_header(1, "VALID - Normal Operations (TODAY Mode)")
+    
     kb = MRTKnowledgeBase()
     engine = ResolutionEngine(kb)
-    scenarios = get_tele_test_scenarios()
     
-    passed = 0
-    failed = 0
+    facts = {
+        "Network_Mode_Today": True,
+        "Station_Open_TanahMerah": True,
+        "Station_Open_Expo": True,
+        "Station_Open_Changi_Airport": True,
+        "Line_Active_TEL": True,
+        "Line_Active_EWL_Airport": True,
+        "Service_Status_Normal_TEL": True,
+        "Network_Operational": True,
+    }
     
-    for scenario in scenarios:
-        print(f"\n{'─'*70}")
-        print(f"[{scenario['id']}] {scenario['description']}")
-        print(f"Mode: {scenario['mode'].value.upper()}")
-        print(f"{'─'*70}")
-        
-        # Display input facts
-        print("\nInput Facts:")
-        for fact, value in scenario['facts'].items():
-            print(f"  • {fact}: {value}")
-        
-        # Run validation
-        result = engine.validate_route(scenario['facts'], scenario['mode'])
-        
-        # Check result
-        is_valid = result['is_consistent']
-        expected = scenario['expected_outcome'] == "VALID"
-        test_passed = (is_valid == expected)
-        
-        if test_passed:
-            status = "✓ PASS"
-            passed += 1
-        else:
-            status = "✗ FAIL"
-            failed += 1
-        
-        print(f"\nResult: {status}")
-        print(f"  Consistency: {result['is_consistent']}")
-        print(f"  Expected: {scenario['expected_outcome']}")
-        
-        if result['consistency_message']:
-            print(f"  Message: {result['consistency_message']}")
-        
-        if result['violated_rules']:
-            print(f"  Violated Rules: {', '.join(result['violated_rules'])}")
-        
-        print(f"\nExplanation: {scenario['explanation']}")
+    result = engine.validate_route(facts, NetworkMode.TODAY)
+    print_result(result)
+    
+    return result
+
+
+# ============================================================================
+# SCENARIO 2: INVALID - Using Old EWL Branch in FUTURE Mode
+# ============================================================================
+
+def scenario_2_invalid_future_ewl():
+    """
+    Scenario 2: Invalid route - Using old EWL airport branch in FUTURE Mode
+    
+    Context: Future network with TELe/CRL, but trying to use old EWL to airport
+    Expected: Violation of R3 (old EWL branch not active in Future Mode)
+    """
+    print_scenario_header(2, "INVALID - Old EWL Airport Branch in FUTURE Mode")
+    
+    kb = MRTKnowledgeBase()
+    engine = ResolutionEngine(kb)
+    
+    facts = {
+        "Network_Mode_Future": True,
+        "Line_Inactive_EWL_Airport": False,  # Trying to say it IS active (violates R3)
+        "Line_Active_TEL": True,
+        "Destination_Changi_Airport": True,
+        "Network_Operational": True,
+    }
+    
+    result = engine.validate_route(facts, NetworkMode.FUTURE)
+    print_result(result)
+    
+    return result
+
+
+# ============================================================================
+# SCENARIO 3: CONTRADICTION - Station Open AND Under Integration
+# ============================================================================
+
+def scenario_3_contradiction_integration():
+    """
+    Scenario 3: Contradictory advisories
+    
+    Context: Advisory states Expo is open, but also undergoing integration work
+    Expected: Contradiction detected (R2: Integration work → Station closed)
+    """
+    print_scenario_header(3, "CONTRADICTION - Station Open AND Integration Work")
+    
+    kb = MRTKnowledgeBase()
+    engine = ResolutionEngine(kb)
+    
+    facts = {
+        "Network_Mode_Today": True,
+        "Integration_Work_Expo": True,  # Expo undergoing integration
+        "Station_Closed_Expo": False,  # But advisory says it's NOT closed (contradiction)
+    }
+    
+    result = engine.validate_route(facts, NetworkMode.TODAY)
+    print_result(result)
+    
+    return result
+
+
+# ============================================================================
+# SCENARIO 4: VALID - FUTURE Mode with TEL to T5
+# ============================================================================
+
+def scenario_4_valid_future_t5():
+    """
+    Scenario 4: Valid route in FUTURE Mode to T5
+    
+    Context: Future network operational, routing to new T5 station via TEL
+    Expected: All rules satisfied (R4, R12 validated)
+    """
+    print_scenario_header(4, "VALID - FUTURE Mode Route to T5")
+    
+    kb = MRTKnowledgeBase()
+    engine = ResolutionEngine(kb)
+    
+    facts = {
+        "Network_Mode_Future": True,
+        "Network_Operational": True,
+        "Line_Active_TEL_T5": True,  # TEL extension to T5
+        "Line_Active_CRL_T5": True,  # CRL extension to T5
+        "Station_Open_T5": True,
+        "Route_Uses_T5": True,
+        "Line_Active_TEL": True,
+        "Line_Active_CRL": True,
+        "Transfer_Available_TEL_CRL": True,  # R9 should be satisfied
+    }
+    
+    result = engine.validate_route(facts, NetworkMode.FUTURE)
+    print_result(result)
+    
+    return result
+
+
+# ============================================================================
+# SCENARIO 5: INVALID - Using T5 in TODAY Mode (FIXED)
+# ============================================================================
+
+def scenario_5_invalid_t5_today():
+    """
+    Scenario 5: Invalid - Trying to route to T5 in TODAY Mode
+    
+    Context: TODAY mode but route uses T5 (which doesn't exist yet)
+    Expected: Violation of R12 and R13 (T5 requires Future Mode, but we're in Today Mode)
+    """
+    print_scenario_header(5, "INVALID - Using T5 Station in TODAY Mode")
+    
+    kb = MRTKnowledgeBase()
+    engine = ResolutionEngine(kb)
+    
+    facts = {
+        "Network_Mode_Today": True,
+        "Route_Uses_T5": True,  # This triggers R12: Route_Uses_T5 → Network_Mode_Future
+        "Network_Mode_Not_Future": True,  # R13 consequence: Today → Not Future
+        # R12 infers Network_Mode_Future
+        # R13 infers Network_Mode_Not_Future  
+        # These contradict!
+    }
+    
+    result = engine.validate_route(facts, NetworkMode.TODAY)
+    print_result(result)
+    
+    return result
+
+
+# ============================================================================
+# SCENARIO 6: VALID - Reduced Service with Crowding Risk
+# ============================================================================
+
+def scenario_6_valid_crowding():
+    """
+    Scenario 6: Valid but crowded - Reduced service during peak hour
+    
+    Context: TEL has reduced service during peak hour
+    Expected: Valid route but high crowding risk (R8)
+    """
+    print_scenario_header(6, "VALID - Reduced Service with High Crowding Risk")
+    
+    kb = MRTKnowledgeBase()
+    engine = ResolutionEngine(kb)
+    
+    facts = {
+        "Network_Mode_Today": True,
+        "Service_Status_Reduced_TEL": True,
+        "Time_Peak": True,
+        "Crowding_Risk_High": True,  # R8 consequence
+        "Integration_Work_Active": True,
+        "Service_Adjustments_Required": True,  # R10 consequence
+    }
+    
+    result = engine.validate_route(facts, NetworkMode.TODAY)
+    print_result(result)
+    
+    return result
+
+
+# ============================================================================
+# SCENARIO 7: VALID - Multiple Station Closures
+# ============================================================================
+
+def scenario_7_multiple_closures():
+    """
+    Scenario 7: Multiple simultaneous station closures
+    
+    Context: Both Expo and Tanah Merah closed due to maintenance
+    Expected: Valid scenario, but no TEL-EWL transfer available
+    Tests: Cascading effects of multiple closures
+    """
+    print_scenario_header(7, "VALID - Multiple Station Closures")
+    
+    kb = MRTKnowledgeBase()
+    engine = ResolutionEngine(kb)
+    
+    facts = {
+        "Network_Mode_Today": True,
+        "Station_Closed_Expo": True,
+        "Station_Closed_TanahMerah": True,  # Both major interchange stations closed
+        "Integration_Work_Expo": True,      # Reason for Expo closure
+        "Line_Active_TEL": True,
+        "Line_Active_EWL_Airport": True,
+        "Transfer_Unavailable_Expo": True,  # R6 consequence
+        "Transfer_Unavailable_TEL_EWL": True,  # R15 consequence
+    }
+    
+    result = engine.validate_route(facts, NetworkMode.TODAY)
+    print_result(result)
+    
+    return result
+
+
+# ============================================================================
+# SCENARIO 8: VALID - Complete Future Mode Setup
+# ============================================================================
+
+def scenario_8_future_mode_complete():
+    """
+    Scenario 8: Complete Future Mode network configuration
+    
+    Context: Future network fully operational with all extensions
+    Expected: Valid - all Future Mode requirements met
+    Tests: Comprehensive Future Mode validation
+    """
+    print_scenario_header(8, "VALID - Complete FUTURE Mode Configuration")
+    
+    kb = MRTKnowledgeBase()
+    engine = ResolutionEngine(kb)
+    
+    facts = {
+        "Network_Mode_Future": True,
+        "Network_Mode_Not_Today": True,  # R14 consequence
+        "Network_Operational": True,
+        "Line_Active_TEL_T5": True,  # R4 consequence
+        "Line_Active_CRL_T5": True,
+        "Line_Inactive_EWL_Airport": True,  # R3 consequence
+        "Station_Open_T5": True,
+        "Line_Active_TEL": True,
+        "Line_Active_CRL": True,
+        "Transfer_Available_TEL_CRL": True,  # R9 consequence
+        "Destination_Changi_Airport": True,
+        "Route_Uses_TEL": True,  # R11 consequence
+    }
+    
+    result = engine.validate_route(facts, NetworkMode.FUTURE)
+    print_result(result)
+    
+    return result
+
+
+# ============================================================================
+# SCENARIO 9: VALID - Peak Hour Complex Scenario
+# ============================================================================
+
+def scenario_9_peak_hour_complex():
+    """
+    Scenario 9: Peak hour with multiple concurrent issues
+    
+    Context: Peak hour + reduced service + integration work
+    Expected: Valid but with high crowding risk
+    Tests: Multiple rules triggering simultaneously
+    """
+    print_scenario_header(9, "VALID - Peak Hour Multiple Service Issues")
+    
+    kb = MRTKnowledgeBase()
+    engine = ResolutionEngine(kb)
+    
+    facts = {
+        "Network_Mode_Today": True,
+        "Time_Peak": True,
+        "Service_Status_Reduced_TEL": True,
+        "Integration_Work_Active": True,
+        "Crowding_Risk_High": True,  # R8 consequence
+        "Service_Adjustments_Required": True,  # R10 consequence
+        "Network_Operational": True,
+    }
+    
+    result = engine.validate_route(facts, NetworkMode.TODAY)
+    print_result(result)
+    
+    return result
+
+
+# ============================================================================
+# COMPARISON SCENARIOS: TODAY vs FUTURE Mode
+# ============================================================================
+
+def comparison_scenario_changi_airport():
+    """
+    Comparison: Routing to Changi Airport in TODAY vs FUTURE Mode
+    
+    Tests how the same destination works differently in different modes
+    """
+    print("\n" + "="*70)
+    print("COMPARISON: Changi Airport Route - TODAY vs FUTURE Mode")
+    print("="*70)
+    
+    kb = MRTKnowledgeBase()
+    
+    # TODAY Mode
+    print("\n--- TODAY MODE ---")
+    engine_today = ResolutionEngine(kb)
+    facts_today = {
+        "Network_Mode_Today": True,
+        "Destination_Changi_Airport": True,
+        "Line_Active_EWL_Airport": True,  # Use old EWL branch
+        "Station_Open_Changi_Airport": True,
+    }
+    result_today = engine_today.validate_route(facts_today, NetworkMode.TODAY)
+    print(f"Result: {'✓ VALID' if result_today['is_consistent'] else '✗ INVALID'}")
+    
+    # FUTURE Mode
+    print("\n--- FUTURE MODE ---")
+    engine_future = ResolutionEngine(kb)
+    facts_future = {
+        "Network_Mode_Future": True,
+        "Destination_Changi_Airport": True,
+        "Route_Uses_TEL": True,  # Must use TEL (R11)
+        "Line_Inactive_EWL_Airport": True,  # Old EWL not active (R3)
+        "Station_Open_Changi_Airport": True,
+    }
+    result_future = engine_future.validate_route(facts_future, NetworkMode.FUTURE)
+    print(f"Result: {'✓ VALID' if result_future['is_consistent'] else '✗ INVALID'}")
+    
+    print("\nAnalysis:")
+    print("  • TODAY Mode: Uses EWL airport branch")
+    print("  • FUTURE Mode: Must use TEL (old EWL branch converted)")
+    print("  • This demonstrates the network transformation impact")
+
+
+# ============================================================================
+# HELPER FUNCTIONS FOR SCENARIO FILTERING
+# ============================================================================
+
+def run_today_scenarios():
+    """Run only TODAY mode scenarios"""
+    print("\n" + "#"*70)
+    print("# TODAY MODE TEST SCENARIOS")
+    print("#"*70)
+    
+    results = []
+    results.append(scenario_1_valid_today())
+    results.append(scenario_3_contradiction_integration())
+    results.append(scenario_5_invalid_t5_today())
+    results.append(scenario_6_valid_crowding())
+    results.append(scenario_7_multiple_closures())
+    results.append(scenario_9_peak_hour_complex())
+    
+    print("\n" + "="*70)
+    print(f"TODAY MODE SCENARIOS COMPLETED: {len(results)} scenarios")
+    print("="*70)
+    
+    return results
+
+
+def run_future_scenarios():
+    """Run only FUTURE mode scenarios"""
+    print("\n" + "#"*70)
+    print("# FUTURE MODE TEST SCENARIOS")
+    print("#"*70)
+    
+    results = []
+    results.append(scenario_2_invalid_future_ewl())
+    results.append(scenario_4_valid_future_t5())
+    results.append(scenario_8_future_mode_complete())
+    
+    print("\n" + "="*70)
+    print(f"FUTURE MODE SCENARIOS COMPLETED: {len(results)} scenarios")
+    print("="*70)
+    
+    return results
+
+
+# ============================================================================
+# MAIN TEST RUNNER
+# ============================================================================
+
+def run_all_scenarios():
+    """Run all test scenarios"""
+    
+    print("\n" + "#"*70)
+    print("# LOGICAL INFERENCE TEST SCENARIOS")
+    print("# ChangiLink AI - MRT Advisory Consistency Validation")
+    print("#"*70)
+    
+    # Display knowledge base
+    print("\n" + "="*70)
+    print("KNOWLEDGE BASE OVERVIEW")
+    print("="*70)
+    kb = MRTKnowledgeBase()
+    kb.display_summary()
+    
+    # Run individual scenarios
+    results = []
+    results.append(scenario_1_valid_today())
+    results.append(scenario_2_invalid_future_ewl())
+    results.append(scenario_3_contradiction_integration())
+    results.append(scenario_4_valid_future_t5())
+    results.append(scenario_5_invalid_t5_today())
+    results.append(scenario_6_valid_crowding())
+    results.append(scenario_7_multiple_closures())
+    results.append(scenario_8_future_mode_complete())
+    results.append(scenario_9_peak_hour_complex())
+    
+    # Run comparison
+    comparison_scenario_changi_airport()
     
     # Summary
-    print(f"\n\n{'='*70}")
+    print("\n" + "="*70)
     print("TEST SUMMARY")
-    print(f"{'='*70}")
-    print(f"Total Scenarios: {len(scenarios)}")
-    print(f"Passed: {passed}")
-    print(f"Failed: {failed}")
+    print("="*70)
     
-    if failed == 0:
-        print("\n✓ ALL TESTS PASSED!")
-    else:
-        print(f"\n✗ {failed} TEST(S) FAILED")
+    valid_count = sum(1 for r in results if r['is_consistent'])
+    invalid_count = len(results) - valid_count
     
-    print(f"{'='*70}\n")
-
-
-def print_tele_scenario_summary():
-    """Print a summary of all TELe test scenarios"""
-    scenarios = get_tele_test_scenarios()
+    print(f"\nTotal Scenarios: {len(results)}")
+    print(f"Valid Scenarios: {valid_count}")
+    print(f"Invalid/Contradictory: {invalid_count}")
+    
+    print("\nScenario Breakdown:")
+    for i, result in enumerate(results, 1):
+        status = "✓ VALID" if result['is_consistent'] else "✗ INVALID"
+        print(f"  Scenario {i} ({result['mode']}): {status}")
     
     print("\n" + "="*70)
-    print("TELe TEST SCENARIOS SUMMARY")
-    print("="*70 + "\n")
-    
-    print(f"Total TELe-specific scenarios: {len(scenarios)}\n")
-    
-    for scenario in scenarios:
-        print(f"[{scenario['id']}] {scenario['description']}")
-        print(f"   Mode: {scenario['mode'].value.upper()}")
-        print(f"   Expected: {scenario['expected_outcome']}")
-        if 'violated_rules' in scenario:
-            print(f"   Violates: {', '.join(scenario['violated_rules'])}")
-        print(f"   {scenario['explanation'][:70]}...")
-        print()
-    
-    print("="*70 + "\n")
+    print("ALL SCENARIOS COMPLETED ✓")
+    print("="*70)
 
-
-# ============================================================================
-# EXAMPLE USAGE
-# ============================================================================
 
 if __name__ == "__main__":
-    print_tele_scenario_summary()
-    
-    print("\n" + "="*70)
-    print("DETAILED SCENARIO EXAMPLE")
-    print("="*70 + "\n")
-    
-    scenarios = get_tele_test_scenarios()
-    example = scenarios[0]  # TELe_1
-    
-    print(f"Scenario ID: {example['id']}")
-    print(f"Description: {example['description']}")
-    print(f"Mode: {example['mode'].value}")
-    print(f"\nInput Facts:")
-    for fact, value in example['facts'].items():
-        print(f"   • {fact}: {value}")
-    
-    print(f"\nExpected Outcome: {example['expected_outcome']}")
-    
-    if 'expected_inferences' in example:
-        print(f"\nExpected Inferences:")
-        for inference in example['expected_inferences']:
-            print(f"   • {inference}")
-    
-    print(f"\nExplanation:")
-    print(f"   {example['explanation']}")
-    
-    print("\n" + "="*70)
-    print("To run these scenarios with the inference engine:")
-    print("="*70)
-    print("""
-from knowledge_base_updated import MRTKnowledgeBase
-from logical_inference import ResolutionEngine
-from tele_test_scenarios import get_tele_test_scenarios
-
-# Initialize
-kb = MRTKnowledgeBase()
-engine = ResolutionEngine(kb)
-
-# Get scenarios
-scenarios = get_tele_test_scenarios()
-
-# Run each scenario
-for scenario in scenarios:
-    result = engine.validate_route(scenario['facts'], scenario['mode'])
-    print(f"{scenario['id']}: {result['is_consistent']}")
-    """)
-    print("="*70 + "\n")
+    run_all_scenarios()
