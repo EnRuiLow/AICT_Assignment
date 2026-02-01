@@ -2,10 +2,6 @@ import math
 from collections import deque
 import heapq
 import time
-import random
-import math
-
-
 
 stations = {
     # East-West / Downtown Line
@@ -156,6 +152,141 @@ graph_today = {
 
 
 
+
+
+
+
+
+# # --------------------------
+# # 4️⃣ Heuristic function
+# # --------------------------
+# def heuristic(a, b):
+#     x1, y1 = stations[a]
+#     x2, y2 = stations[b]
+#     return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+
+# # --------------------------
+# # 5️⃣ Path cost with transfer penalty
+# # --------------------------
+# def path_cost_with_transfer(path, graph, station_line, transfer_penalty=2):
+#     cost = 0
+#     for i in range(len(path)-1):
+#         cost += graph[path[i]][path[i+1]]
+#         if station_line.get(path[i]) != station_line.get(path[i+1]):
+#             cost += transfer_penalty
+#     return cost
+
+# # --------------------------
+# # 6️⃣ BFS
+# # --------------------------
+# def bfs(graph, start, goal):
+#     queue = deque([[start]])
+#     visited = set()
+#     nodes_expanded = 0
+
+#     while queue:
+#         path = queue.popleft()
+#         node = path[-1]
+#         nodes_expanded += 1
+
+#         if node == goal:
+#             return path, nodes_expanded
+
+#         if node not in visited:
+#             visited.add(node)
+#             for neighbor in graph.get(node, {}):
+#                 new_path = list(path)
+#                 new_path.append(neighbor)
+#                 queue.append(new_path)
+
+#     return None, nodes_expanded
+
+# # --------------------------
+# # 7️⃣ DFS
+# # --------------------------
+# def dfs(graph, start, goal):
+#     stack = [[start]]
+#     visited = set()
+#     nodes_expanded = 0
+
+#     while stack:
+#         path = stack.pop()
+#         node = path[-1]
+#         nodes_expanded += 1
+
+#         if node == goal:
+#             return path, nodes_expanded
+
+#         if node not in visited:
+#             visited.add(node)
+#             for neighbor in graph.get(node, {}):
+#                 new_path = list(path)
+#                 new_path.append(neighbor)
+#                 stack.append(new_path)
+
+#     return None, nodes_expanded
+
+# # --------------------------
+# # 8️⃣ GBFS
+# # --------------------------
+# def greedy_bfs(graph, start, goal):
+#     pq = []
+#     heapq.heappush(pq, (heuristic(start, goal), [start]))
+#     visited = set()
+#     nodes_expanded = 0
+
+#     while pq:
+#         _, path = heapq.heappop(pq)
+#         node = path[-1]
+#         nodes_expanded += 1
+
+#         if node == goal:
+#             return path, nodes_expanded
+
+#         if node not in visited:
+#             visited.add(node)
+#             for neighbor in graph.get(node, {}):
+#                 new_path = list(path)
+#                 new_path.append(neighbor)
+#                 heapq.heappush(pq, (heuristic(neighbor, goal), new_path))
+
+#     return None, nodes_expanded
+
+# # --------------------------
+# # 9️⃣ A* Search
+# # --------------------------
+# def astar(graph, start, goal, station_line, transfer_penalty=2):
+#     pq = []
+#     heapq.heappush(pq, (0 + heuristic(start, goal), 0, [start]))
+#     visited = set()
+#     nodes_expanded = 0
+
+#     while pq:
+#         f, g, path = heapq.heappop(pq)
+#         node = path[-1]
+#         nodes_expanded += 1
+
+#         if node == goal:
+#             return path, nodes_expanded
+
+#         if node not in visited:
+#             visited.add(node)
+#             for neighbor, cost in graph.get(node, {}).items():
+#                 extra = transfer_penalty if station_line.get(node) != station_line.get(neighbor) else 0
+#                 new_g = g + cost + extra
+#                 new_f = new_g + heuristic(neighbor, goal)
+#                 new_path = list(path)
+#                 new_path.append(neighbor)
+#                 heapq.heappush(pq, (new_f, new_g, new_path))
+
+#     return None, nodes_expanded
+
+
+
+import math
+from collections import deque
+import heapq
+import time
 # ------------------------------
 # Future stations with coordinates
 # ------------------------------
@@ -574,9 +705,16 @@ compare_today_future(graph_today, station_line, future_graph_today, future_stati
 
 
 
+# The optimization model combines local search and simulated annealing to minimize average commuter
+# delay across multiple OD pairs under disruption scenarios. Hard constraints prevent traversal of
+# suspended segments, while soft penalties model reduced service and transfer congestion. The final
+# optimized solution achieves an average delay of only 1.6 units compared to baseline conditions,
+# demonstrating effective mitigation of disruption impacts through intelligent rerouting on the future MRT
+# network.
 
 
-
+import random
+import math
 
 # =====================================================
 # DISRUPTIONS
