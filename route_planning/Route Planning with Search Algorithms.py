@@ -2,10 +2,6 @@ import math
 from collections import deque
 import heapq
 import time
-import random
-import math
-
-
 
 stations = {
     # East-West / Downtown Line
@@ -156,6 +152,12 @@ graph_today = {
 
 
 
+
+
+import math
+from collections import deque
+import heapq
+import time
 # ------------------------------
 # Future stations with coordinates
 # ------------------------------
@@ -574,9 +576,16 @@ compare_today_future(graph_today, station_line, future_graph_today, future_stati
 
 
 
+# The optimization model combines local search and simulated annealing to minimize average commuter
+# delay across multiple OD pairs under disruption scenarios. Hard constraints prevent traversal of
+# suspended segments, while soft penalties model reduced service and transfer congestion. The final
+# optimized solution achieves an average delay of only 1.6 units compared to baseline conditions,
+# demonstrating effective mitigation of disruption impacts through intelligent rerouting on the future MRT
+# network.
 
 
-
+import random
+import math
 
 # =====================================================
 # DISRUPTIONS
