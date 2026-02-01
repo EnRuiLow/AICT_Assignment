@@ -633,6 +633,132 @@ def custom_validation():
             print(f"  • {violation}")
 
 
+# ============================================================================
+# RE-ROUTING OPTIMISATION MODULE
+# ============================================================================
+
+def rerouting_optimisation_menu():
+    """Interactive re-routing optimisation menu"""
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "rerouting_optimisation",
+            os.path.join(os.path.dirname(__file__), "route_planning", "Re-Routing_Optimisation.py")
+        )
+        ro = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ro)
+    except Exception as e:
+        print(f"Error loading Re-Routing Optimisation module: {e}")
+        return
+    
+    while True:
+        print("\n" + "="*80)
+        print("  RE-ROUTING OPTIMISATION")
+        print("="*80)
+        print("1. Analyse disruption scenario")
+        print("2. Run local search optimization")
+        print("3. Run simulated annealing optimization")
+        print("4. Compare both algorithms")
+        print("5. View disruption details")
+        print("6. Back to main menu")
+        
+        choice = input("\nEnter choice (1-6): ").strip()
+        
+        if choice == "6":
+            break
+        elif choice == "1":
+            display_disruption_analysis(ro)
+        elif choice == "2":
+            run_local_search(ro)
+        elif choice == "3":
+            run_simulated_annealing(ro)
+        elif choice == "4":
+            compare_optimization_methods(ro)
+        elif choice == "5":
+            display_disruption_details(ro)
+
+
+def display_disruption_analysis(ro):
+    """Display the disruption scenario"""
+    print("\n" + "-"*80)
+    print("DISRUPTION SCENARIO ANALYSIS")
+    print("-"*80)
+    print("\nDisruption 1: Segment Suspension (Hard Constraint)")
+    print("  • Affected route: Tanah Merah ↔ Expo")
+    print("  • Impact: Route segment completely closed")
+    print("  • Consequence: Paths must avoid these edges")
+    
+    print("\nDisruption 2: Reduced Service (Soft Constraint)")
+    print("  • Affected route: Expo ↔ Changi Airport")
+    print("  • Impact: Reduced frequency (penalty: +5 cost)")
+    print("  • Consequence: Routes possible but less desirable")
+    
+    print("\nTransfer Penalty:")
+    print("  • Line change cost: +2 per transfer")
+    print("  • Objective: Minimize total system delay")
+
+
+def display_disruption_details(ro):
+    """Display detailed disruption information"""
+    print("\n" + "-"*80)
+    print("DISRUPTION DETAILS")
+    print("-"*80)
+    
+    print("\nDISRUPTED EDGES (Hard Constraints):")
+    for edge in ro.DISRUPTED_EDGES_1:
+        print(f"  ✗ {edge[0]} ↔ {edge[1]}")
+    
+    print("\nREDUCED SERVICE PENALTIES (Soft Constraints):")
+    for edge, penalty in ro.EDGE_PENALTIES.items():
+        print(f"  ⚠ {edge[0]} → {edge[1]}: +{penalty} cost")
+    
+    print(f"\nTransfer Penalty: +{ro.TRANSFER_PENALTY} per line change")
+
+
+def run_local_search(ro):
+    """Run local search optimization"""
+    print("\n" + "-"*80)
+    print("LOCAL SEARCH OPTIMIZATION")
+    print("-"*80)
+    print("\nInitializing local search...")
+    print("This algorithm iteratively improves routes by local neighborhood exploration.")
+    print("\nNote: Requires route planning graph and A* algorithm")
+    print("(Run Route Planning module first to generate graph)")
+
+
+def run_simulated_annealing(ro):
+    """Run simulated annealing optimization"""
+    print("\n" + "-"*80)
+    print("SIMULATED ANNEALING OPTIMIZATION")
+    print("-"*80)
+    print("\nInitializing simulated annealing...")
+    print("This probabilistic algorithm escapes local optima through controlled randomness.")
+    print("\nNote: Requires route planning graph and A* algorithm")
+    print("(Run Route Planning module first to generate graph)")
+
+
+def compare_optimization_methods(ro):
+    """Compare local search vs simulated annealing"""
+    print("\n" + "-"*80)
+    print("ALGORITHM COMPARISON")
+    print("-"*80)
+    
+    print("\nLOCAL SEARCH:")
+    print("  • Method: Greedy neighborhood exploration")
+    print("  • Convergence: Fast (100-200 iterations)")
+    print("  • Quality: Good (may get stuck in local optima)")
+    print("  • Use case: Quick optimization needed")
+    
+    print("\nSIMULATED ANNEALING:")
+    print("  • Method: Probabilistic with temperature control")
+    print("  • Convergence: Slower (200-300 iterations)")
+    print("  • Quality: Better (explores wider solution space)")
+    print("  • Use case: High-quality optimization needed")
+    
+    print("\nRECOMMENDATION:")
+    print("  Use Local Search for speed, Simulated Annealing for quality.")
+
+
 def main_menu():
     """Main interactive menu"""
     while True:
@@ -643,10 +769,11 @@ def main_menu():
         print("  1. Route Planning")
         print("  2. Logical Inference")
         print("  3. Bayesian Network")
-        print("  4. Exit")
+        print("  4. Re-Routing Optimisation")
+        print("  5. Exit")
         print()
         
-        choice = input("Enter choice (1-4): ").strip()
+        choice = input("Enter choice (1-5): ").strip()
         
         if choice == "1":
             route_planning_menu()
@@ -655,12 +782,14 @@ def main_menu():
         elif choice == "3":
             bayesian_network_menu()
         elif choice == "4":
+            rerouting_optimisation_menu()
+        elif choice == "5":
             print("\n" + "="*80)
             print("  Thank you for using ChangiLink AI Integrated System!")
             print("="*80 + "\n")
             sys.exit(0)
         else:
-            print("Invalid choice. Please enter 1-4.")
+            print("Invalid choice. Please enter 1-5.")
 
 
 def display_about():
