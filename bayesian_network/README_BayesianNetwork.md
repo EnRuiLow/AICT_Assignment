@@ -189,22 +189,4 @@ This component integrates with:
 3. MRT Ridership Statistics - LTA Annual Reports
 4. pgmpy Documentation - https://pgmpy.org/
 
-## Assignment Compliance Checklist
 
-- ✅ 7 variables defined (W, T, D, M, S, P, C)
-- ✅ Appropriate states for each variable
-- ✅ Network structure with justified dependencies
-- ✅ CPDs defined with documented probabilities
-- ✅ 8 scenarios tested (>5 required)
-- ✅ 3+ Today vs Future Mode comparisons
-- ✅ Service Status variable for disruptions
-- ✅ Analysis of why crowding changes between modes
-- ✅ Discussion of limitations and improvements
-- ✅ Code is well-documented and executable
-
----
-
-**Author**: [Your Name/Student ID]  
-**Module**: Artificial Intelligence Concepts & Techniques  
-**Assignment**: ChangiLink AI - Bayesian Network Component  
-**Date**: January 2026
